@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
 
     // open file
-    string filename = "input12800.txt";
+    string filename = "input100.txt";
     ifstream input;
     input.open(filename);
 
@@ -93,14 +93,14 @@ int main(int argc, char *argv[]) {
         int count = 1;
         for (int e = 0; e < slopeVector.size(); e++) {
 
-            if (slopeVector[e].first == prev) {
+            if (slopeVector.at(e).first == prev) {
                 count++;
             } else {
                 if (count > 2) {
-                    render_line(scene, origo, slopeVector[e-1].second);
+                    render_line(scene, origo, slopeVector.at(e-1).second);
                     a.processEvents();
                 }
-                prev = slopeVector[e].first;
+                prev = slopeVector.at(e).first;
                 count = 1;
             }
         }
@@ -109,7 +109,6 @@ int main(int argc, char *argv[]) {
             render_line(scene, origo, slopeVector.back().second);
             a.processEvents();
         }
-
     }
 
     auto end = chrono::high_resolution_clock::now();
