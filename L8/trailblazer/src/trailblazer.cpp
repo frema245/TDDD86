@@ -6,65 +6,194 @@
 #include "costs.h"
 #include "trailblazer.h"
 #include <set>
-// TODO: include any other headers you need; remove this comment
+#include <queue>
+#include <pqueue.h>
+#include <algorithm>
+
 using namespace std;
 
-vector<Vertex*> depthHelp(BasicGraph& graph, Node* node, Vertex* end, vector<Vertex*> path);
+bool depthFirstSearch_help(BasicGraph& graph, Vertex* start, Vertex* end, vector<Node*>& path)
+{
+    start->visited = true;
+    start->setColor(GREEN);
 
-vector<Node *> depthFirstSearch(BasicGraph& graph, Vertex* start, Vertex* end) {
-    vector<Vertex*> path;
-    vector<Vertex*> build;
+    if (start == end) {
+        path.push_back(start);
+        return true;
+    }
+    else {
+        for (Node* node : graph.getNeighbors(start)) {
+            if (!node->visited) {
+                if (depthFirstSearch_help(graph,  node, end, path)) {
+                    path.push_back(start);
+                    return true; // is it ok to ignore a return?
+                }
+            }
+        }
+        start->setColor(RED); //Dismissed
+        return false;
+    }
+}
 
-    path = depthHelp(graph, start, end, build);
-
+vector<Node*> depthFirstSearch(BasicGraph& graph, Vertex* start, Vertex* end)
+{
+    vector<Node*> path;
+    graph.resetData(); //Prev. paths' have to be removed...
+    depthFirstSearch_help(graph,  start, end, path);
     return path;
 }
 
-vector<Vertex*> depthHelp(BasicGraph& graph, Node* node, Vertex* end, vector<Vertex*> build ) {
 
-    node->visited = true;
-    build.push_back(node);
+vector<Node*> breadthFirstSearch(BasicGraph& graph, Vertex* start, Vertex* end)
+{
+    vector<Vertex*> path;
+    graph.resetData(); //still important...
+    queue<Node*> NodesToVisit;
+    NodesToVisit.push(start);
 
-    for (Arc* arc: node->arcs) {
-        Node* current = arc->finish;
+    while (!NodesToVisit.empty()) {
+        Vertex* current = NodesToVisit.front();
+        current->visited = true;
+        current->setColor(GREEN); //Visited
 
         if (current == end) {
-            cout << "CAAAAT" << endl;
-            build.push_back(current);
-            return build;
+            while (current != nullptr) {
+                path.push_back(current);
+                current = current->previous;
+            }
+            return path;
+        }
 
-        } else if (!current->visited) {
-            return depthHelp(graph, current, end, build);
+        NodesToVisit.pop();
+
+        for (Node* node : graph.getNeighbors(current)) {
+            if (!node->visited) {
+                node->previous = current;
+                NodesToVisit.push(node);
+                node->setColor(YELLOW); //Processing
+            }
+
         }
     }
-
-    build.pop_back();
-
-}
-
-vector<Node *> breadthFirstSearch(BasicGraph& graph, Vertex* start, Vertex* end) {
-    // TODO: implement this function; remove these comments
-    //       (The function body code provided below is just a stub that returns
-    //        an empty vector so that the overall project will compile.
-    //        You should remove that code and replace it with your implementation.)
-    vector<Vertex*> path;
     return path;
 }
 
-vector<Node *> dijkstrasAlgorithm(BasicGraph& graph, Vertex* start, Vertex* end) {
-    // TODO: implement this function; remove these comments
-    //       (The function body code provided below is just a stub that returns
-    //        an empty vector so that the overall project will compile.
-    //        You should remove that code and replace it with your implementation.)
+
+vector<Node *> dijkstrasAlgorithm(BasicGraph& graph, Vertex* start, Vertex* end)
+{
     vector<Vertex*> path;
+    graph.resetData();
+    PriorityQueue<Vertex*> openset; // The set of nodes to be evaluated, starting with our location
+    openset.enqueue(start, 0.0);
+    start->previous = nullptr;
+
+    while (!openset.isEmpty()) { // While we havnt check all possible paths
+        Vertex* current = openset.dequeue();
+        current->visited = true;
+        current->setColor(GREEN); //Visited
+
+        if (current == end) {
+            while (current != nullptr) {
+                path.push_back(current);
+                current = current->previous;
+            }
+            return path;
+        }
+
+        for (Edge* edge : graph.getEdgeSet(current)) {
+            Vertex* neighbour;
+            neighbour = edge->finish;
+
+            if (neighbour->visited)
+                continue;
+
+            bool open = false;
+
+            for (Edge* e : neighbour->arcs) {
+                if (e->visited) {
+                    open = true;
+                    break;
+                }
+            }
+
+            edge->visited = true;
+            graph.getEdge(neighbour, current)->visited = true; // from the other side as well.
+
+            double temp_cost = current->cost + edge->cost;
+
+            if (!open) {
+                neighbour->previous = current;
+                neighbour->cost = temp_cost;
+                openset.enqueue(neighbour, temp_cost);
+                neighbour->setColor(YELLOW);
+
+            } else if (temp_cost < neighbour->cost) {
+                neighbour->previous = current;
+                neighbour->cost = temp_cost;
+                openset.changePriority(neighbour, temp_cost);
+            }
+        }
+    }
     return path;
 }
 
-vector<Node *> aStar(BasicGraph& graph, Vertex* start, Vertex* end) {
-    // TODO: implement this function; remove these comments
-    //       (The function body code provided below is just a stub that returns
-    //        an empty vector so that the overall project will compile.
-    //        You should remove that code and replace it with your implementation.)
+
+vector<Node *> aStar(BasicGraph& graph, Vertex* start, Vertex* end)
+{
+    graph.resetData(); // Important...!!!
     vector<Vertex*> path;
+    PriorityQueue<Vertex*> openset; // The set of nodes to be evaluated.
+
+    openset.enqueue(start, 0.0);
+    start->previous = nullptr;
+
+    while (!openset.isEmpty()) {
+        Vertex* current = openset.dequeue();
+        current->visited = true;
+        current->setColor(GREEN); //Visited
+
+        if (current == end) {
+            while (current != nullptr) {
+                path.push_back(current);
+                current = current->previous;
+            }
+            return path;
+        }
+
+        for (Edge* edge : graph.getEdgeSet(current)) {
+            Vertex* neighbour;
+            neighbour = edge->finish;
+
+            if (neighbour->visited)
+                continue;
+
+            bool open = false;
+
+            for (Edge* e : neighbour->arcs) {
+                if (e->visited) {
+                    open = true;
+                    break;
+                }
+            }
+
+            edge->visited = true;
+            graph.getEdge(neighbour, current)->visited = true; // Visited from both sides.
+
+            double temp_cost = current->cost + edge->cost;
+            double priority_cost = temp_cost + neighbour->heuristic(end);
+
+            if (!open) {
+                neighbour->previous = current;
+                neighbour->cost = temp_cost;
+                openset.enqueue(neighbour, priority_cost);
+                neighbour->setColor(YELLOW);
+
+            } else if (temp_cost < neighbour->cost) {
+                neighbour->previous = current;
+                neighbour->cost = temp_cost;
+                openset.changePriority(neighbour, priority_cost);
+            }
+        }
+    }
     return path;
 }
